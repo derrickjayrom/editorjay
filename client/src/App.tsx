@@ -134,7 +134,11 @@ function App() {
   };
 
   const fetchRoot = (path: string | null) => {
-      const url = path ? `http://localhost:3001/files?path=${encodeURIComponent(path)}` : 'http://localhost:3001/files';
+      if (!path) {
+          setFileTree([]);
+          return;
+      }
+      const url = `http://localhost:3001/files?path=${encodeURIComponent(path)}`;
       fetch(url) 
       .then(res => res.json())
       .then(data => {
@@ -150,7 +154,9 @@ function App() {
 
   // Initial Fetch & Root Change Fetch
   useEffect(() => {
-    fetchRoot(rootPath);
+    if (rootPath) {
+        fetchRoot(rootPath);
+    }
   }, [rootPath]);
 
 
@@ -337,6 +343,7 @@ function App() {
               files={visibleTree} 
               onFileClick={handleFileClick}
               rootName={rootName}
+              onOpenFolder={handleOpenFolder}
           />
         )}
         {activeView === 'search' && (

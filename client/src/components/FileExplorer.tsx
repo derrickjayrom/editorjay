@@ -12,6 +12,7 @@ interface FileExplorerProps {
   files: FileNode[];
   onFileClick: (file: FileNode) => void;
   rootName: string;
+  onOpenFolder: () => void;
 }
 
 const FileTreeItem = ({ file, depth, onFileClick }: { file: FileNode, depth: number, onFileClick: (file: FileNode) => void }) => {
@@ -52,15 +53,17 @@ const FileTreeItem = ({ file, depth, onFileClick }: { file: FileNode, depth: num
     );
 };
 
-const FileExplorer = ({ files, onFileClick, rootName }: FileExplorerProps) => {
+const FileExplorer = ({ files, onFileClick, rootName, onOpenFolder }: FileExplorerProps) => {
   return (
     <div className="sidebar-content" style={{ height: '100%', overflowY: 'auto' }}>
       <div style={{ display: 'flex', flexDirection: 'column', padding: '10px' }}>
         <h3 style={{ margin: '0 0 10px 0', fontSize: '11px', textTransform: 'uppercase', opacity: 0.6 }}>Explorer</h3>
-        <div style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: '#aaa', display: 'flex', alignItems: 'center' }}>
-            <span style={{ marginRight: '4px' }}>▼</span>
-            {rootName}
-        </div>
+        {rootName && rootName !== 'Explorer' && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: '#aaa', display: 'flex', alignItems: 'center' }}>
+                <span style={{ marginRight: '4px' }}>▼</span>
+                {rootName}
+            </div>
+        )}
       </div>
 
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -68,9 +71,23 @@ const FileExplorer = ({ files, onFileClick, rootName }: FileExplorerProps) => {
           <FileTreeItem key={file.path} file={file} depth={0} onFileClick={onFileClick} />
         ))}
         {files.length === 0 && (
-            <li style={{ padding: '10px', color: '#666', fontSize: '12px', fontStyle: 'italic' }}>
-                No files found
-            </li>
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+                <p style={{ color: '#666', fontSize: '12px', marginBottom: '10px' }}>No folder opened</p>
+                <button 
+                    onClick={onOpenFolder}
+                    style={{ 
+                        backgroundColor: '#007acc', 
+                        color: 'white', 
+                        border: 'none', 
+                        padding: '4px 12px', 
+                        borderRadius: '2px', 
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                    }}
+                >
+                    Open Folder
+                </button>
+            </div>
         )}
       </ul>
     </div>
