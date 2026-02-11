@@ -1,13 +1,63 @@
-Set up your project: Create a front-end application using a framework like React, Vue, or Angular, along with a back-end (e.g., Node.js, Python) if features like code execution or saving are required.
-Integrate an editor library: Use a robust JavaScript library to handle the core text-editing functionality. Popular choices include:
-Monaco Editor: The core editor that powers VS Code. It provides features like syntax highlighting, rich language support, and code suggestions out of the box.
-CodeMirror: A versatile and highly customizable text editor for the web. It's used in many projects and has a large ecosystem of add-ons.
-Implement core features:
-Syntax Highlighting: The libraries handle this, but you may need to add configurations for specific languages.
-File Management: Add functionality to load and save files (e.g., via a back-end server or local storage).
-Basic Navigation: Keyboard shortcuts, line numbers, and search/replace are essential and usually included in the libraries.
-Add "advanced" features:
-Contextual Autocompletion/IntelliSense: This often requires language servers on the back-end to analyze code and provide smart suggestions.
-Code Execution: Create a secure, sandboxed environment on your server to run user code and capture the output.
-Version Control Integration: Integrate with systems like Git, or build a simple version tracking system in your database.
-Real-time Collaboration: Use WebSockets (like Socket.IO) to synchronize changes between multiple users simultaneously.
+# EditorJay
+
+A simple web-based code editor that allows you to create, edit, and run code files.
+
+## Project Structure
+
+- **client**: React application (Vite) for the frontend editor interface.
+- **server**: Node.js/Express server that handles file operations and code execution.
+- **user_workspace**: A directory created by the server to store user files.
+
+## Prerequisites
+
+- Node.js (v14+ recommended)
+- npm
+
+## Getting Started
+
+You need to run both the server and the client simultaneously.
+
+### 1. Start the Backend Server
+
+The server runs on port **3001** and manages the file system.
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+### 2. Start the Frontend Client
+
+The client runs on port **5173** (default) and connects to the backend.
+
+Open a new terminal window/tab:
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+### 3. Usage
+
+1.  Open your browser and navigate to `http://localhost:5173`.
+2.  Use the **Sidebar** to view and select files.
+3.  Click **"+ New"** to create a new file (e.g., `script.js`).
+4.  Write your code in the editor.
+5.  Click **"Save"** to save changes to the server.
+6.  Click **"Run"** to execute the code on the server and see the output.
+
+### Supported Languages for Execution
+
+The backend currently supports execution for:
+
+- `.js` (Node.js)
+- `.ts` (ts-node)
+- `.py` (Python 3 - requires python3 installed on host)
+
+## Features
+
+- **File Explorer**: Create and list files from the `user_workspace`.
+- **Code Editor**: Syntax highlighting and line numbers.
+- **Remote Execution**: Run code securely on the backend server.

@@ -1,40 +1,263 @@
-html, body, #root {
+:root {
+  --activity-bar-bg: #333333;
+  --side-bar-bg: #252526;
+  --editor-bg: #1e1e1e;
+  --panel-bg: #1e1e1e;
+  --status-bar-bg: #007acc;
+  --text-color: #cccccc;
+  --border-color: #333333;
+  --font-ui: "Segoe UI", Inter, system-ui, sans-serif;
+  --font-code: "JetBrains Mono", "Consolas", monospace;
+}
+
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--editor-bg);
+  color: var(--text-color);
+  font-family: var(--font-ui);
+  box-sizing: border-box;
 }
 
+/* Main Layout Grid */
 .app-container {
-  display: flex;
+  display: grid;
+  grid-template-areas:
+    "menubar menubar menubar"
+    "activity side editor"
+    "activity side panel"
+    "status status status";
+  grid-template-columns: 50px 250px 1fr;
+  grid-template-rows: 30px 1fr 200px 22px;
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
 
-.sidebar {
-  width: 250px;
+/* Expand editor when sidebar is hidden (optional future feature) */
+.app-container.sidebar-hidden {
+  grid-template-columns: 50px 0 1fr;
+}
+
+/* Menu Bar */
+.menu-bar {
+  grid-area: menubar;
+  background-color: #333333; /* Slightly lighter than editor for top bar */
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 13px;
+  user-select: none;
+  z-index: 1000;
+}
+
+.menu-logo {
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.menu-item {
+  position: relative;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
   background-color: #252526;
-  border-right: 1px solid #333;
-  padding: 10px;
+  border: 1px solid #454545;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+  padding: 4px 0;
+  z-index: 1000;
+  border-radius: 4px;
+}
+
+.dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 12px;
+  color: #cccccc;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #094771;
+  color: white;
+}
+
+.dropdown-separator {
+    height: 1px;
+    background-color: #454545;
+    margin: 4px 10px;
+}
+
+.item-shortcut {
+  margin-left: 20px;
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+/* Activity Bar */
+.activity-bar {
+  grid-area: activity;
+  background-color: var(--activity-bar-bg);
   display: flex;
   flex-direction: column;
+  padding-top: 10px;
 }
 
-.sidebar h3 {
-  margin-top: 0;
-  font-size: 0.9rem;
+.activity-item {
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  opacity: 0.6;
+  border-left: 2px solid transparent;
+}
+
+.activity-item:hover {
+  opacity: 1;
+}
+
+.activity-item.active {
+  opacity: 1;
+  border-left-color: white;
+}
+
+/* Side Bar */
+.sidebar {
+  grid-area: side;
+  background-color: var(--side-bar-bg);
+  border-right: 1px solid var(--activity-bar-bg); /* Use darker border */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 10px;
+  font-size: 11px;
+  font-weight: bold;
   text-transform: uppercase;
   color: #bbb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
+/* Editor Group */
 .main-content {
-  flex: 1;
+  grid-area: editor;
+  background-color: var(--editor-bg);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-width: 0; /* Critical for preventing flex child from growing beyond parent */
+  min-width: 0;
   overflow: hidden;
+}
+
+/* Panel */
+.panel {
+  grid-area: panel;
+  background-color: var(--panel-bg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--font-code);
+  font-size: 12px;
+}
+
+.panel-header {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 10px;
+}
+
+.panel-tab {
+  padding: 5px 10px;
+  cursor: pointer;
+  opacity: 0.6;
+  border-bottom: 1px solid transparent;
+}
+
+.panel-tab:hover {
+  opacity: 0.8;
+}
+
+.panel-tab.active {
+  opacity: 1;
+  border-bottom: 1px solid var(--text-color); /* Simplified active state */
+}
+
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+.panel-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Status Bar */
+.status-bar {
+  grid-area: status;
+  background-color: var(--status-bar-bg);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.status-bar .left-items,
+.status-bar .right-items {
+  display: flex;
+  gap: 15px;
+}
+
+.status-item {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+/* Shared */
+button {
+  border: none;
+  background: transparent;
+  color: #ccc;
+  cursor: pointer;
+}
+
+input {
+  background: #3c3c3c;
+  border: 1px solid #555;
+  color: white;
+  padding: 4px;
+  font-family: var(--font-ui);
+}
+
+input:focus {
+  border-color: #007acc;
+  outline: none;
 }
