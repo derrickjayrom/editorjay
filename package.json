@@ -1,0 +1,16 @@
+{
+  "name": "editorjay-root",
+  "version": "1.0.0",
+  "description": "Vscode-like editor with Electron",
+  "main": "main.js",
+  "scripts": {
+    "electron:dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\" \"wait-on http://localhost:5174 && electron .\"",
+    "electron:build": "npm run build --prefix client && npm run build --prefix server && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.2.0"
+  }
+}

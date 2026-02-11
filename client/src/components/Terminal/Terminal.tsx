@@ -23,6 +23,7 @@ const TerminalComponent = () => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showOverlay, setShowOverlay] = useState(false);
     const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 });
+    const [isConnected, setIsConnected] = useState(false);
     const commandHistory = useRef<string[]>([]);
     
     // Refs for closure access in event handlers
@@ -61,6 +62,17 @@ const TerminalComponent = () => {
 
         socket.on('connect', () => {
             console.log('Connected to terminal backend');
+            setIsConnected(true);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from terminal backend');
+            setIsConnected(false);
+        });
+
+        socket.on('connect_error', (error: any) => {
+            console.error('Socket connection error:', error);
+            setIsConnected(false);
         });
 
         // Custom Key Handler for Tab and Arrows
@@ -123,9 +135,11 @@ const TerminalComponent = () => {
         term.onData((data: string) => {
              const code = data.charCodeAt(0);
              
+             // Forward all data to backend immediately
+             socket.emit('input', data);
+
              // Enter
              if (code === 13) {
-                 socket.emit('input', data); // Forward Enter to backend
                  if (currentInputRef.current.trim()) {
                     commandHistory.current.push(currentInputRef.current.trim());
                     if (commandHistory.current.length > 50) commandHistory.current.shift();
@@ -135,17 +149,11 @@ const TerminalComponent = () => {
              } 
              // Backspace
              else if (code === 127) {
-                 socket.emit('input', data); // Forward Backspace to backend
                  setCurrentInput(prev => prev.slice(0, -1));
              } 
              // Printable characters
              else if (code >= 32 && code <= 126) {
-                 socket.emit('input', data);
                  setCurrentInput(prev => prev + data);
-             }
-             // Handle arrows passing through if not consumed by overlay
-             else if (data === '\x1b[A' || data === '\x1b[B' || data === '\x1b[C' || data === '\x1b[D') {
-                 socket.emit('input', data);
              }
         });
 
@@ -245,6 +253,22 @@ const TerminalComponent = () => {
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div 
+                style={{ 
+                    position: 'absolute', 
+                    top: '5px', 
+                    right: '10px', 
+                    zIndex: 10,
+                    fontSize: '10px',
+                    color: isConnected ? '#4caf50' : '#f44336',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                }}
+            >
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'currentColor' }} />
+                {isConnected ? 'LIVE' : 'DISCONNECTED'}
+            </div>
             <div ref={terminalRef} style={{ width: '100%', height: '100%' }} className="terminal-container" />
             <TerminalSuggestions 
                 suggestions={suggestions} 

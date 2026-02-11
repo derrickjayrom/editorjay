@@ -30,7 +30,10 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ isOpen, onClose, onSelect, 
     setLoading(true);
     setError(null);
     fetch(`http://localhost:3001/files?path=${encodeURIComponent(path)}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Backend unavailable. Make sure server is running on port 3001.');
+        return res.json();
+      })
       .then(data => {
         if (data.error) {
           setError(data.error);
@@ -40,7 +43,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ isOpen, onClose, onSelect, 
           setCurrentPath(path);
         }
       })
-      .catch(_err => setError('Failed to load folders'))
+      .catch(err => setError(err.message || 'Failed to load folders'))
       .finally(() => setLoading(false));
   };
 
