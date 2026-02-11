@@ -56,7 +56,6 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ isOpen, onClose, onSelect, 
     const parentPath = currentPath.startsWith('/') ? '/' + parts.join('/') : parts.join('/');
     fetchFolders(parentPath);
   };
-
   if (!isOpen) return null;
 
   return (
