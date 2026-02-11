@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import './App.css';
 import CodeEditor from './components/Editor/Editor';
 import FileExplorer from './components/FileExplorer';
@@ -9,11 +9,14 @@ import Panel from './components/Layout/Panel';
 import MenuBar from './components/Layout/MenuBar';
 
 import EditorTabs from './components/Layout/EditorTabs';
+import FolderPicker from './components/Modals/FolderPicker';
 
-interface FileItem {
+interface FileNode {
   name: string;
   isDirectory: boolean;
   path: string;
+  children?: FileNode[];
+  isOpen?: boolean;
 }
 
 interface OpenFile {
@@ -25,8 +28,11 @@ interface OpenFile {
 }
 
 function App() {
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [currentPath, setCurrentPath] = useState<string>('');
+  const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [showHiddenFiles, setShowHiddenFiles] = useState<boolean>(false);
+  const [rootPath, setRootPath] = useState<string | null>(null);
+  const [rootName, setRootName] = useState<string>('Explorer');
+  const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false);
   
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([]);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
@@ -37,41 +43,120 @@ function App() {
   // New File Counter
   const untitledCount = useRef(1);
 
-  const fetchFiles = (path?: string) => {
-    const url = path ? `http://localhost:3001/files?path=${encodeURIComponent(path)}` : 'http://localhost:3001/files';
-    fetch(url)
+  // Helper to filter hidden files
+  // We use useMemo to avoid re-calculating on every render if tree/showHidden doesn't change
+  const visibleTree = useMemo(() => {
+      const filterNodes = (nodes: FileNode[]): FileNode[] => {
+          return nodes
+              .filter(node => showHiddenFiles || !node.name.startsWith('.'))
+              .map(node => ({
+                  ...node,
+                  children: node.children ? filterNodes(node.children) : undefined
+              }));
+      };
+      return filterNodes(fileTree);
+  }, [fileTree, showHiddenFiles]);
+
+  const toggleHiddenFiles = () => setShowHiddenFiles(prev => !prev);
+
+  const handleOpenFolder = () => {
+      setIsFolderPickerOpen(true);
+  };
+
+  const onFolderSelect = (path: string) => {
+      setIsFolderPickerOpen(false);
+      setRootPath(path);
+      setRootName(path.split(/[/\\]/).pop() || path || 'Explorer');
+  };
+
+  // Helper to update the tree deeply
+  const updateTree = (nodes: FileNode[], path: string, newChildren: FileNode[]): FileNode[] => {
+      return nodes.map(node => {
+          if (node.path === path) {
+              return { ...node, children: newChildren, isOpen: true }; // Expand and set children
+          }
+          if (node.children) {
+              return { ...node, children: updateTree(node.children, path, newChildren) };
+          }
+          return node;
+      });
+  };
+
+  const toggleFolder = (node: FileNode) => {
+      if (!node.isDirectory) return;
+
+      // Toggle Close
+      if (node.isOpen) {
+          const closeNode = (nodes: FileNode[]): FileNode[] => {
+              return nodes.map(n => {
+                  if (n.path === node.path) {
+                      return { ...n, isOpen: false };
+                  }
+                  if (n.children) {
+                      return { ...n, children: closeNode(n.children) };
+                  }
+                  return n;
+              });
+          };
+          setFileTree(prev => closeNode(prev));
+          return;
+      }
+
+      // Open: If we already have children, just open. Otherwise fetch.
+      if (node.children && node.children.length > 0) {
+           const openNode = (nodes: FileNode[]): FileNode[] => {
+              return nodes.map(n => {
+                  if (n.path === node.path) {
+                      return { ...n, isOpen: true };
+                  }
+                  if (n.children) {
+                      return { ...n, children: openNode(n.children) };
+                  }
+                  return n;
+              });
+          };
+          setFileTree(prev => openNode(prev));
+      } else {
+          // Fetch children
+          fetch(`http://localhost:3001/files?path=${encodeURIComponent(node.path)}`)
+              .then(res => res.json())
+              .then(data => {
+                  if (data.error) {
+                      console.error(data.error);
+                      return;
+                  }
+                  // data.files are the children
+                  const children = data.files.map((f: any) => ({ ...f, isOpen: false }));
+                  setFileTree(prev => updateTree(prev, node.path, children));
+              })
+              .catch(err => console.error('Failed to load folder', err));
+      }
+  };
+
+  const fetchRoot = (path: string | null) => {
+      const url = path ? `http://localhost:3001/files?path=${encodeURIComponent(path)}` : 'http://localhost:3001/files';
+      fetch(url) 
       .then(res => res.json())
       .then(data => {
           if (data.error) {
-              console.error(data.error);
+              alert(data.error);
               return;
           }
-          setFiles(data.files);
-          setCurrentPath(data.currentPath);
+          const initialNodes = data.files.map((f: any) => ({ ...f, isOpen: false }));
+          setFileTree(initialNodes);
       })
-      .catch(err => console.error('Failed to load files', err));
+      .catch(console.error);
   };
 
+  // Initial Fetch & Root Change Fetch
   useEffect(() => {
-    fetchFiles();
-  }, []);
+    fetchRoot(rootPath);
+  }, [rootPath]);
 
-  const handleFileClick = (file: FileItem) => {
+
+  const handleFileClick = (file: FileNode) => {
     if (file.isDirectory) {
-        if (file.name === '..') {
-            // Very basic "up", backend usually handles paths, but here we rely on the implementation details
-            // Actually, for ".." assuming we just want to go up one level. 
-            // A naive split implementation for now:
-            // This is tricky without 'path' lib in browser.
-            // Let's rely on backend: if we send '..', backend might not handle it broadly.
-            // Better: use the currentPath.
-            // For now, let's assume standard 'cd ..' behavior isn't fully robust in frontend string manip, 
-            // but let's try to strip the last segment.
-            const parent = currentPath.split(/[/\\]/).slice(0, -1).join('/'); // rudimentary
-            fetchFiles(parent || '/');
-        } else {
-            fetchFiles(file.path);
-        }
+        toggleFolder(file);
     } else {
         // Open File
         const existingTab = openFiles.find(f => f.id === file.path);
@@ -123,8 +208,12 @@ function App() {
         if (!filename) return; // Cancelled
         
         // Construct path - naïve approach
-        // We really need a separator. Let's guess '/' for linux/mac users.
-        targetPath = `${currentPath}/${filename}`;
+        // We really need a separator. Let's guess '/' for linux.
+        // Defaulting to root of workspace effectively if we don't have a specific path context
+        // Ideally we would know which folder was 'selected' in the tree, but for now let's just use the filename which implies root if no path given
+        // However, the backend expects a full path or relative to workspace. 
+        // If we just send 'filename.txt', the backend might put it in the root of the workspace.
+        targetPath = rootPath ? `${rootPath}/${filename}` : filename; 
     }
 
     fetch('http://localhost:3001/files/save', {
@@ -145,7 +234,7 @@ function App() {
                         isDirty: false, 
                         path: targetPath, 
                         id: targetPath!, // Update ID to real path
-                        name: targetPath!.split(/[/\\]/).pop() || filename!
+                        name: targetPath!.split(/[/\\]/).pop()!
                     }; 
                 }
                 return f;
@@ -155,7 +244,7 @@ function App() {
                 setActiveFileId(targetPath);
             }
             // Refresh file list if we saved in current directory
-            fetchFiles(currentPath);
+            fetchRoot(rootPath);
         }
     })
     .catch(err => console.error('Failed to save file', err));
@@ -232,15 +321,22 @@ function App() {
 
   return (
     <div className="app-container">
-      <MenuBar onSave={saveFile} onRun={runCode} onNewFile={handleNewFile} />
+      <MenuBar 
+        onSave={saveFile} 
+        onRun={runCode} 
+        onNewFile={handleNewFile}
+        onOpenFolder={handleOpenFolder}
+        showHiddenFiles={showHiddenFiles}
+        onToggleHiddenFiles={toggleHiddenFiles}
+      />
       <ActivityBar activeView={activeView} onViewChange={setActiveView} />
       
       <div className="sidebar">
         {activeView === 'explorer' && (
           <FileExplorer 
-              files={files} 
-              onFileClick={handleFileClick} 
-              currentPath={currentPath}
+              files={visibleTree} 
+              onFileClick={handleFileClick}
+              rootName={rootName}
           />
         )}
         {activeView === 'search' && (
@@ -277,10 +373,15 @@ function App() {
       <Panel output={output} />
       
       <StatusBar language={activeFile?.name.split('.').pop()?.toUpperCase() || 'PLAINTEXT'} />
+
+      <FolderPicker 
+        isOpen={isFolderPickerOpen} 
+        onClose={() => setIsFolderPickerOpen(false)} 
+        onSelect={onFolderSelect}
+        initialPath={rootPath}
+      />
     </div>
   );
 }
 
 export default App;
-
-

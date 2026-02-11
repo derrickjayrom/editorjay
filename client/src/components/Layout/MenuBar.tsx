@@ -20,9 +20,12 @@ interface MenuBarProps {
   onSave: () => void;
   onRun: () => void;
   onNewFile: () => void;
+  onOpenFolder: () => void;
+  showHiddenFiles: boolean;
+  onToggleHiddenFiles: () => void;
 }
 
-const MenuBar: React.FC<MenuBarProps> = ({ onSave, onRun, onNewFile }) => {
+const MenuBar: React.FC<MenuBarProps> = ({ onSave, onRun, onNewFile, onOpenFolder, showHiddenFiles, onToggleHiddenFiles }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +35,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ onSave, onRun, onNewFile }) => {
       label: 'File',
       items: [
         { label: 'New File', shortcut: 'Ctrl+N', action: onNewFile },
-        { label: 'Open File...', shortcut: 'Ctrl+O' },
+        { label: 'Open Folder...', shortcut: 'Ctrl+K Ctrl+O', action: onOpenFolder },
         { separator: true },
         { label: 'Save', shortcut: 'Ctrl+S', action: onSave },
         { label: 'Save As...', shortcut: 'Ctrl+Shift+S' },
@@ -60,7 +63,14 @@ const MenuBar: React.FC<MenuBarProps> = ({ onSave, onRun, onNewFile }) => {
     {
         id: 'view',
         label: 'View',
-        items: [{ label: 'Command Palette...', shortcut: 'Ctrl+Shift+P' }]
+        items: [
+            { label: 'Command Palette...', shortcut: 'Ctrl+Shift+P' },
+            { separator: true },
+            { 
+                label: `${showHiddenFiles ? '✓ ' : ''}Show Hidden Files`, 
+                action: onToggleHiddenFiles 
+            }
+        ]
     },
     {
         id: 'go',
